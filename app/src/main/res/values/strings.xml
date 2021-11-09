@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Cycle Speedometer</string>
+    <string name="tab_text_1">New Tour</string>
+    <string name="tab_text_2">Previous Tours</string>
+</resources>
