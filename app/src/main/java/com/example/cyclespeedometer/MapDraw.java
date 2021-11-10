@@ -35,8 +35,8 @@ public class MapDraw extends View {
     private Paint paint;
     private List<Double> x, y, z, x_true, y_true, z_true;
     private List<Integer> colorCodesList;
-    private double x_base,y_base;
-    private final int SCALE=5000000;
+    private double x_base,y_base, r, l, u, d;
+    private int SCALE = 10000000;
 
     private void initVars() {
         paint = new Paint();
@@ -99,7 +99,7 @@ public class MapDraw extends View {
             FileWriter writer = new FileWriter(gpxfile);
             writer.append("latitude,longitude,speed(kmph)\n");
             for(int i = 0; i< min(x_true.size(),z_true.size()); i++) {
-                writer.append(Double.toString(x_true.get(i))+","+Double.toString(y_true.get(i))+","+Double.toString(z_true.get(i))+"\n");
+                writer.append(Double.toString(y_true.get(i))+","+Double.toString(x_true.get(i))+","+Double.toString(z_true.get(i))+"\n");
             }
             writer.flush();
             writer.close();
@@ -133,8 +133,8 @@ public class MapDraw extends View {
             while((line = reader.readLine()) != null){
                 String[] parts = line.split(",");
                 Double lat = Double.parseDouble(parts[0]), long_ = Double.parseDouble(parts[1]);
-                x_true.add(lat);
-                y_true.add(long_);
+                x_true.add(long_);
+                y_true.add(lat);
                 z.add(Double.parseDouble(parts[2]));
                 z_true.add(Double.parseDouble(parts[2]));
                 minLat = min(minLat, lat);
@@ -143,10 +143,10 @@ public class MapDraw extends View {
                 maxLong = max(maxLong, long_);
             }
             if(x_true.size() == 0)return 0;
-            Double diff = max(maxLat - minLat, maxLong - minLong);
             x_base = x_true.get(0);
             y_base = y_true.get(0);
-            int scale = (int) (400 / diff);
+            Double diff = max(max(maxLat - y_base, y_base - minLat), max(maxLong - x_base, x_base - minLong));
+            int scale = (int) (375 / diff);
             for(int ii = 0; ii < x_true.size(); ii++){
                 x.add(scale * (x_true.get(ii) - x_base));
                 y.add(scale * (y_true.get(ii) - y_base));
@@ -161,22 +161,45 @@ public class MapDraw extends View {
     public void setBaseDataPoint(double latitude, double longitude){
         x_base = longitude;
         y_base = latitude;
+        u = x_base;
+        d = x_base;
+        l = y_base;
+        r = y_base;
     }
 
     public void addDataPoint(double latitude, double longitude){
-        addDataPoint(latitude,longitude,0, SCALE);
+        addDataPoint(latitude,longitude,0);
+    }
+
+    private void redoCoords(){
+        x.clear();
+        y.clear();
+        for(int ii = 0; ii < y_true.size(); ii++) {
+            y.add(SCALE * (y_true.get(ii) - y_base));
+        }
+        for(int ii = 0; ii < x_true.size(); ii++) {
+            x.add(SCALE * (x_true.get(ii) - x_base));
+        }
     }
 
     public void addDataPoint(double latitude, double longitude, double speed){
-        addDataPoint(latitude,longitude,speed,SCALE);
-    }
-
-    public void addDataPoint(double latitude, double longitude, double speed, int scale){
         if(x.size()==0){
             setBaseDataPoint(latitude,longitude);
         }
-        x.add(scale*(longitude-x_base));
-        y.add(scale*(latitude-y_base));
+        if(speed < 0) speed = 0;
+        u = max(u, longitude);
+        d = min(d, longitude);
+        l = min(l, latitude);
+        r = max(r, latitude);
+        double stretch = max(max(u-x_base, x_base-d), max(r-y_base, y_base-l));
+        if(stretch == 0)stretch = 0.000045;
+        int newScale = (int) (450.0 / stretch);
+        if(newScale != SCALE){
+            SCALE = newScale;
+            redoCoords();
+        }
+        x.add(SCALE*(longitude-x_base));
+        y.add(SCALE*(latitude-y_base));
         z.add(speed);
         x_true.add(longitude);
         y_true.add(latitude);
@@ -198,7 +221,7 @@ public class MapDraw extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         int width = (int) canvas.getWidth()/2;
-        int height = (int) canvas.getWidth()/2;
+        int height = (int) canvas.getHeight()/2;
         for(int i = 1; i < x.size(); i++) {
             initPaint(getColorCode(z.get(i)), 10);
             canvas.drawLine( height + x.get(i).floatValue(), width - y.get(i).floatValue(), height + x.get(i-1).floatValue(), width - y.get(i-1).floatValue(), paint);

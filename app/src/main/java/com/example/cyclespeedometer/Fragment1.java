@@ -67,7 +67,7 @@ public class Fragment1 extends Fragment {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(view.getContext());
         checkLocationPermission();
         Button buttonButton = getView().findViewById(R.id.button);
-        buttonButton.setOnClickListener(this::add);
+        buttonButton.setOnClickListener(this::startTour);
         Button saveButton = getView().findViewById(R.id.save);
         saveButton.setOnClickListener(this::save);
         mapDrawView = getView().findViewById(R.id.mapDraw);
@@ -146,7 +146,7 @@ public class Fragment1 extends Fragment {
         });
     }
 
-    public void add(View v) {
+    public void startTour(View v) {
         tourRunning = true;
     }
 
