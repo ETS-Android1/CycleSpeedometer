@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentResultListener;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
@@ -51,11 +52,8 @@ public class Fragment1 extends Fragment {
 
     private FusedLocationProviderClient fusedLocationClient;
     private MapDraw mapDrawView;
-    private String deviceAddress;
-    public static BluetoothSocket mmSocket;
-    public static CreateConnectThread createConnectThread;
-    public static ConnectedThread connectedThread;
     public static TextView messageView;
+    public boolean tourRunning = false;
 
     @Nullable
     @Override
@@ -74,10 +72,14 @@ public class Fragment1 extends Fragment {
         saveButton.setOnClickListener(this::save);
         mapDrawView = getView().findViewById(R.id.mapDraw);
         messageView = getView().findViewById(R.id.textView);
-        deviceAddress = "00:18:E4:40:00:06";
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
-        createConnectThread.start();
+        getParentFragmentManager().setFragmentResultListener("add_datapoint", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle bundle) {
+                if(!tourRunning)return;
+                int speed = bundle.getInt("speed");
+                getGPSLocation(speed);
+            }
+        });
     }
 
     private boolean checkLocationPermission() {
@@ -139,15 +141,17 @@ public class Fragment1 extends Fragment {
         requestCurrentLocation(new GPSCallback() {
             public void onLocation(Location location) {
                 mapDrawView.addDataPoint(location.getLatitude(),location.getLongitude(), speed);
+                mapDrawView.invalidate();
             }
         });
     }
 
     public void add(View v) {
-        return;
+        tourRunning = true;
     }
 
     public void save(View v) {
+        tourRunning = false;
         File file = new File(getActivity().getFilesDir(), "saved_routes");
         if (!file.exists()) {
             file.mkdir();
@@ -161,137 +165,4 @@ public class Fragment1 extends Fragment {
             Toast.makeText(getActivity(), "Unable to save :\\", Toast.LENGTH_LONG).show();
         }
     }
-
-
-
-
-
-
-
-
-    public class CreateConnectThread extends Thread {
-
-        public CreateConnectThread(BluetoothAdapter bluetoothAdapter, String address) {
-            /*
-            Use a temporary object that is later assigned to mmSocket
-            because mmSocket is final.
-             */
-            BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(address);
-            BluetoothSocket tmp = null;
-            UUID uuid = bluetoothDevice.getUuids()[0].getUuid();
-
-            try {
-                /*
-                Get a BluetoothSocket to connect with the given BluetoothDevice.
-                Due to Android device varieties,the method below may not work fo different devices.
-                You should try using other methods i.e. :
-                tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-                 */
-                tmp = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(uuid);
-
-            } catch (IOException e) {
-                Log.i("Connection Failed","dhdjd");
-            }
-            mmSocket = tmp;
-        }
-
-        public void run() {
-            // Cancel discovery because it otherwise slows down the connection.
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            bluetoothAdapter.cancelDiscovery();
-            try {
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
-                mmSocket.connect();
-                Log.e("Status", "Device connected");
-            } catch (IOException connectException) {
-                // Unable to connect; close the socket and return.
-                try {
-                    mmSocket.close();
-                    Log.e("Status", "Cannot connect to device");
-                } catch (IOException closeException) {
-                    Log.e("ConnectionIssue", "Could not close the client socket");
-                }
-                return;
-            }
-
-            messageView.setText("Success Connected!\n");
-            // The connection attempt succeeded. Perform work associated with
-            // the connection in a separate thread.
-            connectedThread = new ConnectedThread(mmSocket);
-            connectedThread.run();
-        }
-
-        // Closes the client socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) {
-                Log.e("ConnectionIssue", "Could not close the client socket");
-            }
-        }
-    }
-
-
-
-
-    public class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
-
-        public ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-
-            try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) { }
-
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
-        }
-
-        public void run() {
-            byte[] buffer = new byte[1024];
-            int bytes = 0;
-            while (true) {
-                try {
-                    buffer[bytes] = (byte) mmInStream.read();
-                    String readMessage;
-                    if (buffer[bytes] == '\n'){
-                        readMessage = new String(buffer,0,bytes);
-                        Log.e("Arduino Message",readMessage);
-                        int speed = Integer.parseInt(readMessage);//
-                        getGPSLocation(speed);//
-                        mapDrawView.invalidate();//
-                        bytes = 0;
-                    } else {
-                        bytes++;
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            }
-        }
-
-        public void write(String input) {
-            byte[] bytes = input.getBytes();
-            try {
-                mmOutStream.write(bytes);
-            } catch (IOException e) {
-                Log.e("Send Error","Unable to send message",e);
-            }
-        }
-
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) { }
-        }
-    }
-
 }
