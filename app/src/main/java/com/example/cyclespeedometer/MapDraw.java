@@ -94,7 +94,7 @@ public class MapDraw extends View {
         try {
             Date currentTime = Calendar.getInstance().getTime();
             String[] parts = currentTime.toString().split(" ");
-            String fileName = parts[2]+"-"+parts[1]+"-"+parts[5]+" "+parts[3];
+            String fileName = parts[2]+"-"+parts[1]+"-"+parts[5]+" "+parts[3] + ".csv";
             File gpxfile = new File(file, fileName);
             FileWriter writer = new FileWriter(gpxfile);
             writer.append("latitude,longitude,speed(kmph)\n");
@@ -142,6 +142,7 @@ public class MapDraw extends View {
                 minLong = min(minLong, long_);
                 maxLong = max(maxLong, long_);
             }
+            if(x_true.size() == 0)return 0;
             Double diff = max(maxLat - minLat, maxLong - minLong);
             x_base = x_true.get(0);
             y_base = y_true.get(0);

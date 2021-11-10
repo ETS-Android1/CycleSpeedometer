@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.cyclespeedometer.ui.main.SectionsPagerAdapter;
@@ -63,7 +64,34 @@ public class MainActivity extends AppCompatActivity {
                 bts.showSelector(view.getRootView());
             }
         });
+
+        //////////////////////////////////////////////////////////////////////
+        DeleteThisLater dtl = new DeleteThisLater();
+        dtl.start();
+        //////////////////////////////////////////////////////////////////////
+
     }
+
+    //////////////////////////////////////////////////////////////////////
+    public class DeleteThisLater extends Thread {
+        public void run(){
+            int speed = 0, offset = 1;
+            while(true) {
+                Bundle bundle = new Bundle();
+                bundle.putInt("speed", speed);
+                MainActivity.getInstance().getSupportFragmentManager().setFragmentResult("add_datapoint", bundle);
+                if(speed >= 30)offset = -1;
+                if(speed <= 0)offset = 1;
+                speed += offset;
+                try {
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    //////////////////////////////////////////////////////////////////////
 
     public static MainActivity getInstance() {
         return instance;
@@ -71,7 +99,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        connectedThread.cancel();
+        if(connectedThread != null){
+            connectedThread.cancel();
+        }
         super.onDestroy();
     }
 
@@ -171,6 +201,12 @@ public class MainActivity extends AppCompatActivity {
             int bytes = 0;
             while (true) {
                 try {
+                    if(!mmSocket.isConnected()){
+                        Toast.makeText(getInstance(), "Bluetooth disconnected :\\", Toast.LENGTH_LONG).show();
+                        Button saveButton = (Button) getInstance().findViewById(R.id.save);
+                        saveButton.performClick();
+                        break;
+                    }
                     buffer[bytes] = (byte) mmInStream.read();
                     String readMessage;
                     if (buffer[bytes] == '\n'){
