@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.cyclespeedometer">
+    package="com.example.cyclespeedometer"
+    android:screenOrientation="portrait">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -15,12 +16,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/speedometer_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CycleSpeedometer">
+        android:theme="@style/Theme.CycleSpeedometer"
+        android:screenOrientation="portrait">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.CycleSpeedometer.NoActionBar">
+            android:theme="@style/Theme.CycleSpeedometer.NoActionBar"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

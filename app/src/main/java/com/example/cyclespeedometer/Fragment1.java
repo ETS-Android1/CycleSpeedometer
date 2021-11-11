@@ -1,6 +1,7 @@
 package com.example.cyclespeedometer;
 
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +26,9 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.widget.Toast;
 
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -38,6 +41,9 @@ public class Fragment1 extends Fragment {
     private MapDraw mapDrawView;
     public static TextView messageView;
     public boolean tourRunning = false;
+    private double currentLatitude, currentLongitude;
+    private LocationCallback locationCallback;
+    private LocationRequest locationRequest;
 
     @Nullable
     @Override
@@ -56,6 +62,24 @@ public class Fragment1 extends Fragment {
         saveButton.setOnClickListener(this::save);
         mapDrawView = getView().findViewById(R.id.mapDraw);
         messageView = getView().findViewById(R.id.textView);
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    currentLatitude = location.getLatitude();
+                    currentLongitude = location.getLongitude();
+                }
+            }
+        };
+
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(200);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
         getParentFragmentManager().setFragmentResultListener("add_datapoint", this, new FragmentResultListener() {
             @Override
             public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle bundle) {
@@ -96,46 +120,36 @@ public class Fragment1 extends Fragment {
         return true;
     }
 
-    private interface GPSCallback{
-        void onLocation(Location location);
-    }
-
-    private void requestCurrentLocation(GPSCallback callback){
+    private void startUpdates(){
         if (checkLocationPermission()) {
-            Task<Location> currentLocationTask = fusedLocationClient.getCurrentLocation(
-                    LocationRequest.PRIORITY_HIGH_ACCURACY,
-                    null
-            );
-            currentLocationTask.addOnCompleteListener((new OnCompleteListener<Location>() {
-                @Override
-                public void onComplete(@NonNull Task<Location> task) {
-                    Location location=null;
-                    if (task.isSuccessful()) {
-                        location = task.getResult();
-                    } else {
-                        Exception exception = task.getException();
-                    }
-                    callback.onLocation(location);
-                }
-            }));
+            fusedLocationClient.requestLocationUpdates(locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper());
         }
     }
 
+    private void stopUpdates(){
+        fusedLocationClient.removeLocationUpdates(locationCallback);
+    }
+
     private void getGPSLocation(int speed){
-        requestCurrentLocation(new GPSCallback() {
-            public void onLocation(Location location) {
-                mapDrawView.addDataPoint(location.getLatitude(),location.getLongitude(), speed);
-                mapDrawView.invalidate();
-            }
-        });
+        mapDrawView.addDataPoint(currentLatitude, currentLongitude, speed);
+        mapDrawView.invalidate();
     }
 
     public void startTour(View v) {
+        if(tourRunning)return;
         tourRunning = true;
+        startUpdates();
     }
 
     public void save(View v) {
+        if(!tourRunning){
+            Toast.makeText(getActivity(), "No Ongoing Route!", Toast.LENGTH_LONG).show();
+            return;
+        }
         tourRunning = false;
+        stopUpdates();
         File file = new File(getActivity().getFilesDir(), "saved_routes");
         if (!file.exists()) {
             file.mkdir();
