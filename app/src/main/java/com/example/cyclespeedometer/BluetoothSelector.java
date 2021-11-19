@@ -2,6 +2,7 @@ package com.example.cyclespeedometer;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -31,7 +32,9 @@ public class BluetoothSelector {
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if(!bluetoothAdapter.isEnabled()){
-            bluetoothAdapter.enable();
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            MainActivity.getInstance().someActivityResultLauncher.launch(enableBtIntent);
+            return;
         }
 
         int width = LinearLayout.LayoutParams.MATCH_PARENT;
@@ -72,6 +75,7 @@ public class BluetoothSelector {
         btList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View clickedView, int pos, long id) {
+                if(devices.get(pos) == "No Paired Devices!")return;
                 Log.i("deviceAddress", MainActivity.getInstance().deviceAddress);
                 MainActivity.getInstance().deviceAddress = deviceMacs.get(pos);
                 MainActivity.getInstance().tryToConnect();

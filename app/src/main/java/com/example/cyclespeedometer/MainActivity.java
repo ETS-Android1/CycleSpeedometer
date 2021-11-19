@@ -1,13 +1,19 @@
 package com.example.cyclespeedometer;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -32,6 +38,16 @@ public class MainActivity extends AppCompatActivity {
     public BluetoothSocket mmSocket = null;
     public CreateConnectThread createConnectThread;
     public ConnectedThread connectedThread = null;
+    ActivityResultLauncher<Intent> someActivityResultLauncher = registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(),
+        new ActivityResultCallback<ActivityResult>() {
+            @Override
+            public void onActivityResult(ActivityResult result) {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    //
+                }
+            }
+        });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

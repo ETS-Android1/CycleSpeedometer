@@ -44,6 +44,7 @@ public class Fragment1 extends Fragment {
     private double currentLatitude, currentLongitude;
     private LocationCallback locationCallback;
     private LocationRequest locationRequest;
+    int updateCount = 0;
 
     @Nullable
     @Override
@@ -72,6 +73,7 @@ public class Fragment1 extends Fragment {
                 for (Location location : locationResult.getLocations()) {
                     currentLatitude = location.getLatitude();
                     currentLongitude = location.getLongitude();
+                    updateCount += 1;
                 }
             }
         };
@@ -133,22 +135,31 @@ public class Fragment1 extends Fragment {
     }
 
     private void getGPSLocation(int speed){
+        if(updateCount <= 10)return;
         mapDrawView.addDataPoint(currentLatitude, currentLongitude, speed);
         mapDrawView.invalidate();
+        messageView.setText(Integer.toString(speed) + " km/h");
     }
 
     public void startTour(View v) {
-        if(tourRunning)return;
-        tourRunning = true;
+        if(tourRunning){
+            Toast.makeText(MainActivity.getInstance(), "Tour already running", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        updateCount = 0;
         startUpdates();
+        tourRunning = true;
+        Toast.makeText(MainActivity.getInstance(), "Tour started", Toast.LENGTH_SHORT).show();
     }
 
     public void save(View v) {
+        messageView.setText("");
         if(!tourRunning){
             Toast.makeText(getActivity(), "No Ongoing Route!", Toast.LENGTH_LONG).show();
             return;
         }
         tourRunning = false;
+        updateCount = 0;
         stopUpdates();
         File file = new File(getActivity().getFilesDir(), "saved_routes");
         if (!file.exists()) {
