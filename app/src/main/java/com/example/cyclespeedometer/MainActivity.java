@@ -73,8 +73,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //////////////////////////////////////////////////////////////////////
-        DeleteThisLater dtl = new DeleteThisLater();
-        dtl.start();
+        //DeleteThisLater dtl = new DeleteThisLater();
+        //dtl.start();
         //////////////////////////////////////////////////////////////////////
 
     }
